@@ -1,0 +1,76 @@
+name: Build GCP Golden Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      zone:
+        description: "GCP zone"
+        default: "us-central1-a"
+        required: true
+
+  push:
+    branches: [main]
+    paths:
+      - "packer/gcp.pkr.hcl"
+      - "scripts/**"
+      - ".github/workflows/build-gcp.yml"
+
+# Required for Workload Identity Federation (recommended over service-account keys)
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build GCP Custom Image
+    runs-on: ubuntu-latest
+
+    env:
+      GCP_ZONE: ${{ inputs.zone || 'us-central1-a' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "1.10.0"
+
+      # Authenticate to GCP via Workload Identity Federation.
+      # Set the secrets GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_SERVICE_ACCOUNT.
+      # Application Default Credentials are written to GOOGLE_APPLICATION_CREDENTIALS,
+      # which Packer's googlecompute builder picks up automatically.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: packer init
+        working-directory: packer
+        run: packer init gcp.pkr.hcl
+
+      - name: packer validate
+        working-directory: packer
+        env:
+          PKR_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          PKR_VAR_zone:       ${{ env.GCP_ZONE }}
+        run: packer validate gcp.pkr.hcl
+
+      - name: packer build
+        working-directory: packer
+        env:
+          PKR_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          PKR_VAR_zone:       ${{ env.GCP_ZONE }}
+        run: packer build gcp.pkr.hcl
+
+      - name: Upload manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcp-manifest
+          path: packer/manifest-gcp.json

@@ -1,0 +1,72 @@
+name: Build Azure Windows Golden Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      location:
+        description: "Azure region"
+        default: "East US"
+        required: true
+
+  push:
+    branches: [main]
+    paths:
+      - "packer/azure-windows.pkr.hcl"
+      - "scripts/windows/**"
+      - ".github/workflows/build-azure-windows.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build Azure Windows Managed Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      LOCATION: ${{ inputs.location || 'East US' }}
+      RESOURCE_GROUP: rg-golden-images
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "1.10.0"
+
+      - name: packer init
+        working-directory: packer
+        run: packer init azure-windows.pkr.hcl
+
+      - name: packer validate
+        working-directory: packer
+        env:
+          PKR_VAR_client_id:       ${{ secrets.AZURE_CLIENT_ID }}
+          PKR_VAR_client_secret:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          PKR_VAR_tenant_id:       ${{ secrets.AZURE_TENANT_ID }}
+          PKR_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          PKR_VAR_location:        ${{ env.LOCATION }}
+          PKR_VAR_resource_group:  ${{ env.RESOURCE_GROUP }}
+        run: packer validate azure-windows.pkr.hcl
+
+      - name: packer build
+        working-directory: packer
+        env:
+          PKR_VAR_client_id:       ${{ secrets.AZURE_CLIENT_ID }}
+          PKR_VAR_client_secret:   ${{ secrets.AZURE_CLIENT_SECRET }}
+          PKR_VAR_tenant_id:       ${{ secrets.AZURE_TENANT_ID }}
+          PKR_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          PKR_VAR_location:        ${{ env.LOCATION }}
+          PKR_VAR_resource_group:  ${{ env.RESOURCE_GROUP }}
+        run: packer build azure-windows.pkr.hcl
+
+      - name: Upload manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-windows-manifest
+          path: packer/manifest-azure-windows.json

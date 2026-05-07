@@ -1,0 +1,23 @@
+# Packer
+packer_cache/
+*.box
+manifest-*.json
+crash.log
+
+# Local variable files (may contain secrets)
+*.pkrvars.hcl
+!*.pkrvars.hcl.example
+
+# Cloud credentials — NEVER commit
+*.json
+!packer/*.json.example
+gcp-sa.json
+azure-creds.json
+.aws/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.bak

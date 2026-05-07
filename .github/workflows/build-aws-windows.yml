@@ -1,0 +1,67 @@
+name: Build AWS Windows Golden Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_region:
+        description: "AWS region"
+        default: "us-east-1"
+        required: true
+
+  push:
+    branches: [main]
+    paths:
+      - "packer/aws-windows.pkr.hcl"
+      - "scripts/windows/**"
+      - ".github/workflows/build-aws-windows.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build AWS Windows AMI
+    runs-on: ubuntu-latest
+    # Windows builds with updates can take 30-60 minutes
+    timeout-minutes: 90
+
+    env:
+      AWS_REGION: ${{ inputs.aws_region || 'us-east-1' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "1.10.0"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: packer init
+        working-directory: packer
+        run: packer init aws-windows.pkr.hcl
+
+      - name: packer validate
+        working-directory: packer
+        run: packer validate -var "aws_region=${{ env.AWS_REGION }}" aws-windows.pkr.hcl
+
+      - name: packer build
+        working-directory: packer
+        run: |
+          packer build \
+            -var "aws_region=${{ env.AWS_REGION }}" \
+            aws-windows.pkr.hcl
+
+      - name: Upload manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-windows-manifest
+          path: packer/manifest-aws-windows.json

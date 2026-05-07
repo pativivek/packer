@@ -1,0 +1,28 @@
+###############################################################################
+# Sample variable values — copy to terraform.pkrvars.hcl (or *.auto.pkrvars.hcl)
+# and override per environment. NEVER commit secrets.
+#
+# Use:
+#   packer build -var-file=variables.pkrvars.hcl packer/aws.pkr.hcl
+###############################################################################
+
+# --- AWS ---
+aws_region        = "us-east-1"
+instance_type     = "t3.medium"
+image_name_prefix = "golden-rhel9"
+
+# --- Azure (set via env: PKR_VAR_client_id, etc.) ---
+# client_id       = "<service-principal-app-id>"
+# client_secret   = "<service-principal-secret>"
+# tenant_id       = "<azure-tenant-id>"
+# subscription_id = "<azure-subscription-id>"
+location       = "East US"
+resource_group = "rg-golden-images"
+vm_size        = "Standard_B2s"
+
+# --- GCP ---
+# project_id       = "my-gcp-project"
+# credentials_file = "./gcp-sa.json"   # optional when using ADC / Workload Identity
+zone         = "us-central1-a"
+machine_type = "e2-medium"
+image_family = "golden-rhel9"

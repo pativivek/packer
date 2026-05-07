@@ -5,7 +5,7 @@ on:
     inputs:
       zone:
         description: "GCP zone"
-        default: "us-central1-a"
+        default: "asia-south1-a"
         required: true
 
   push:
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GCP_ZONE: ${{ inputs.zone || 'us-central1-a' }}
+      GCP_ZONE: ${{ inputs.zone || 'asia-south1-a' }}
 
     steps:
       - name: Checkout

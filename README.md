@@ -58,7 +58,6 @@ packer-golden-image/
     - [Linux (RHEL/OEL)](#linux-rheloel)
     - [Windows](#windows)
   - [How to extend](#how-to-extend)
-  - [License](#license)
 
 ---
 
@@ -416,7 +415,3 @@ together with `LGPO.exe` to apply the official CIS-aligned baselines:
   blocks with cost-center, owner, and patch-baseline metadata.
 
 ---
-
-## License
-
-MIT — use it, fork it, ship it.
